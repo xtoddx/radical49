@@ -1,7 +1,7 @@
 require("src/settings")
 require("src/elements/square")
 
-MainScene = {}
+MainScene = {name="MainSceneClass"}
 MainScene.__index = MainScene
 
 function MainScene.create()
@@ -68,6 +68,23 @@ function MainScene:empty_cells()
   return self:select_cells(self.empty_selector)
 end
 
+function MainScene:cell_at(x, y)
+  local relative_x = x - Settings.square.padding
+  local cell_distance = Settings.square.padding + Settings.square.size
+  local column = 1
+  while relative_x > cell_distance do
+    relative_x = relative_x - cell_distance
+    column = column + 1
+  end
+  local relative_y = y - Settings.square.padding
+  local row = 1
+  while relative_y > cell_distance do
+    relative_y = relative_y - cell_distance
+    row = row + 1
+  end
+  return self.squares[row][column]
+end
+
 MainScene.DropAction = {}
 function MainScene.DropAction:update(scene, dt)
   local empties = scene:empty_cells()
@@ -103,6 +120,68 @@ MainScene.UserInputAction = {}
 function MainScene.UserInputAction:update(scene, dt)
 end
 
-function MainScene.UserInputAction:mousepressed(scene, x, y, button)
-  print("mousepressed: " .. x .. ', ' .. y .. ' (' .. button .. ')')
+function MainScene.UserInputAction:mousepressed(scene, x, y, _button)
+  if self.source_cell then
+    self:get_destination_cell(scene, x, y)
+  else
+    self:get_source_cell(scene, x, y)
+  end
+  if self.source_cell and self.destination_cell then
+    scene.action = scene.MoveAction.create(self.source_cell,
+                                           self.destination_cell)
+  end
+end
+
+function MainScene.UserInputAction:get_source_cell(scene, x, y)
+  local cell = scene:cell_at(x,y)
+  if cell.color ~= Settings.colors.empty then
+    self.source_cell = cell
+  else
+    print("clicked empty cell")
+  end
+end
+
+function MainScene.UserInputAction:get_destination_cell(scene, x, y)
+  local cell = scene:cell_at(x,y)
+  if cell.color == Settings.colors.empty then
+    self.destination_cell = cell
+  else
+    print("clicked colored cell")
+  end
+end
+
+MainScene.MoveAction = {}
+MainScene.MoveAction.__index = MainScene.MoveAction
+
+function MainScene.MoveAction.create(source, dest)
+  local instance = {source = source, dest = dest, color = source.color,
+                    time = 0}
+  setmetatable(instance, MainScene.MoveAction)
+  return instance
+end
+
+function MainScene.MoveAction:update(scene, dt)
+  self.time = self.time + dt
+  if self.time >= 1 then
+    self.source.color = Settings.colors.empty
+    self.dest.color = self.color
+    self.action = scene.DropAction
+    return
+  end
+  for i=1,3 do
+    if self.source.color[i] ~= 255 then
+      -- transition toward white over 1 second
+      self.source.color[i] = 255 * self.time
+      if self.source.color[i] > 255 then
+        self.source.color[i] = 255
+      end
+    end
+    if self.dest.color[i] ~= self.color[i] then
+      -- transition toward target over 1 second
+      self.dest.color[i] = self.color[i] * self.time
+    end
+    if self.dest.color[i] > self.color[i] then
+      self.dest.color[i] = self.color[i]
+    end
+  end
 end
