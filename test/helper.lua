@@ -1,5 +1,3 @@
-require("test/lovemock")
-
 Test = {}
 Test.cases = {}
 Test.results = {}
@@ -58,3 +56,17 @@ function assert_equal(expected, actual)
     error("Expected " .. expected .. ", got " .. actual)
   end
 end
+
+function assert_in_set(item, set)
+  found = false
+  for x=1,#set do
+    if set[x] == item then
+      found = true
+    end
+  end
+  if found ~= true then
+    error("Item " .. tostring(item) .. " not in set")
+  end
+end
+
+require("test/domain_helpers")
