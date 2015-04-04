@@ -1,5 +1,7 @@
 DropAction = {}
 function DropAction:update(scene, dt)
+  -- XXX: can this get called twice if the action isn't changed by the time
+  --      the next update is called?
   local empties = scene:empty_cells()
   local placements = self.select_cells_for_placement(empties,
                                                      scene.squares_per_drop)
